@@ -14,7 +14,7 @@ const SUBJECTS = [
   { code: 'CS104', name: 'Database Management' },
   { code: 'CS105', name: 'Computer Networks' },
   { code: 'CS106', name: 'Software Engineering' },
-  { code: 'CS107', name: 'Web Technologies' },
+  { code: '24SDCS02', name: 'Full-Stack Development' },
   { code: 'CS108', name: 'Machine Learning' },
   { code: 'MATH101', name: 'Mathematics' },
   { code: 'PHY101', name: 'Physics' },
