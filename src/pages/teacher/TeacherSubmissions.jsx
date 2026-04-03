@@ -6,7 +6,7 @@ import Modal    from '../../components/ui/Modal.jsx'
 import FormInput from '../../components/ui/FormInput.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import toast from 'react-hot-toast'
-import { submissionAPI } from '../../utils/api.js'
+import { submissionAPI, assignmentAPI } from '../../utils/api.js'
 import { Paperclip, Search } from 'lucide-react'
 
 const FILTERS = ['all', 'pending', 'graded', 'late']
@@ -29,16 +29,30 @@ export default function TeacherSubmissions() {
   const fetchAllSubmissions = async () => {
     try {
       setFetching(true)
-      const res = await submissionAPI.getMySubmissions()
-      setSubmissions(res.submissions || [])
+      // First get all assignments, then fetch submissions for each
+      const assignRes = await assignmentAPI.getAll()
+      const assignments = assignRes.assignments || []
+
+      const allSubmissions = []
+      for (const assignment of assignments) {
+        try {
+          const subRes = await submissionAPI.getByAssignment(assignment.id)
+          const subs = (subRes.submissions || []).map(s => ({
+            ...s,
+            assignment: s.assignment || assignment
+          }))
+          allSubmissions.push(...subs)
+        } catch (e) {
+          // skip assignments with no access
+        }
+      }
+      setSubmissions(allSubmissions)
     } catch (err) {
       toast.error('Failed to load submissions.')
     } finally {
       setFetching(false)
     }
   }
-
-  const getAssignment = (sub) => sub.assignment || sub.assignmentId
 
   const filtered = submissions.filter((s) => {
     const matchF = filter === 'all' || s.status === filter
@@ -56,7 +70,7 @@ export default function TeacherSubmissions() {
   }
 
   const submitGrade = async () => {
-    const totalMarks = grading.assignment?.totalMarks || grading.totalMarks || 100
+    const totalMarks = grading.assignment?.totalMarks || 100
     const g = Number(gradeVal)
     if (!gradeVal || isNaN(g)) { setGE('Enter a valid number'); return }
     if (g < 0 || g > totalMarks) { setGE(`Must be 0–${totalMarks}`); return }
