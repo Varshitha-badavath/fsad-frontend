@@ -6,19 +6,10 @@ import Button    from './ui/Button.jsx'
 import FormInput from './ui/FormInput.jsx'
 import EmptyState from './ui/EmptyState.jsx'
 import { Paperclip } from 'lucide-react'
+import { submissionAPI } from '../utils/api.js'
 
-/**
- * SubmissionsModal — lists all submissions for a given assignment
- * and opens an inline grading sub-modal.
- *
- * @prop {boolean}  open
- * @prop {function} onClose
- * @prop {object}   assignment
- * @prop {Array}    submissions
- * @prop {function} onGrade     - (submissionId, grade, feedback) => void
- */
 export default function SubmissionsModal({ open, onClose, assignment, submissions, onGrade }) {
-  const [grading, setGrading]       = useState(null)   // submission being graded
+  const [grading, setGrading]       = useState(null)
   const [gradeVal, setGradeVal]     = useState('')
   const [feedback, setFeedback]     = useState('')
   const [gradeLoading, setGL]       = useState(false)
@@ -40,16 +31,20 @@ export default function SubmissionsModal({ open, onClose, assignment, submission
     }
     setGradeError('')
     setGL(true)
-    await new Promise((r) => setTimeout(r, 500))
-    onGrade(grading.id, g, feedback)
-    toast.success(`Grade submitted for ${grading.studentName} ✅`)
-    setGrading(null)
-    setGL(false)
+    try {
+      await submissionAPI.grade(grading.id, { grade: g, feedback })
+      onGrade(grading.id, g, feedback)
+      toast.success(`Grade submitted for ${grading.studentName} ✅`)
+      setGrading(null)
+    } catch (err) {
+      toast.error(err?.message || 'Failed to submit grade.')
+    } finally {
+      setGL(false)
+    }
   }
 
   return (
     <>
-      {/* Submissions list modal */}
       <Modal
         open={open && !grading}
         onClose={onClose}
@@ -113,7 +108,6 @@ export default function SubmissionsModal({ open, onClose, assignment, submission
         )}
       </Modal>
 
-      {/* Grading sub-modal */}
       <Modal
         open={!!grading}
         onClose={() => setGrading(null)}
@@ -121,7 +115,6 @@ export default function SubmissionsModal({ open, onClose, assignment, submission
         subtitle={grading?.rollNo}
         size="sm"
       >
-        {/* Submission info */}
         <div className="bg-slate-50 rounded-xl p-4 mb-5 space-y-1">
           <div className="text-xs text-slate-500">
             Assignment: <span className="font-semibold text-slate-700">{assignment?.title}</span>
